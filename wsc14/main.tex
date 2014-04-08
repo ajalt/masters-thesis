@@ -1,0 +1,255 @@
+
+%% AJ: the paper can be a maximum of 12 pages and we should target 12 pages....
+
+\input{wsc14style.tex}
+
+\documentclass{wscpaperproc}
+
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{latexsym}
+\usepackage{mathptmx}
+\usepackage{pgfplotstable}
+\usepackage{pgfplots}
+\pgfplotsset{compat=newest}
+
+%% This version of the command is used if you use pdflatex. In this case you
+%% cannot use ps or eps files for graphics, but pdf, jpeg, png etc are fine.
+\usepackage[pdftex,colorlinks=true,urlcolor=blue,citecolor=black,anchorcolor=black,linkcolor=black]{hyperref}
+
+% Bar chart color definitions
+\definecolor{bblue}{HTML}{4F81BD}
+\definecolor{rred}{HTML}{C0504D}
+
+\newcommand{\benchbar}[6] {%
+\begin{tikzpicture}
+    \begin{axis}[
+        width  = 0.5*\textwidth,
+        height = 8cm,
+        major x tick style = transparent,
+        ybar=2*\pgflinewidth,
+        bar width=14pt,
+        ymajorgrids = true,
+        ylabel = {Run time (s)},
+        xlabel = {No. of Nodes},
+        symbolic x coords={2,4,8},
+        xtick = data,
+        scaled y ticks = false,
+        enlarge x limits=0.25,
+        ymin=0,
+        legend cell align=left,
+        legend style={
+                at={(1,1.05)},
+                anchor=south east,
+                column sep=1ex
+        }
+    ]
+        \addplot[style={rred,fill=rred,mark=none}]
+            coordinates {(2,#1) (4,#2) (8,#3)};
+        \addplot[style={bblue,fill=bblue,mark=none}]
+            coordinates {(2,#4) (4,#5) (8,#6)};
+        \legend{Random,Profile Guided}
+    \end{axis}
+\end{tikzpicture}
+}
+
+\begin{document}
+
+%***************************************************************************
+% AUTHOR: AUTHOR NAMES GO HERE
+% FORMAT AUTHORS NAMES Like: Author1, Author2 and Author3 (last names)
+%
+%		You need to change the author listing below!
+%               Please list ALL authors using last name only, separate by a comma except
+%               for the last author, separate with "and"
+%
+\WSCpagesetup{Alt and Wilsey}
+
+% AUTHOR: Enter the title, all letters in upper case
+\title{PROFILE DRIVEN PARTITIONING OF PARALLEL SIMULATION MODELS}
+
+% AUTHOR: Enter the authors of the article, see end of the example document for further examples
+\author{AJ Alt\\ [12pt]
+Dept of EECS, PO Box 210030\\
+University of Cincinnati\\
+Cincinnati, OH 45221, USA\\
+% Multiple authors are entered as follows.
+% You may also need to adjust the titlevbox size in the preamble - search for titlevboxsize
+\and
+Philip A. Wilsey \\[12pt]
+Dept of EECS, PO Box 210030\\
+University of Cincinnati\\
+Cincinnati, OH 45221, USA
+}
+
+\maketitle
+
+\section*{ABSTRACT}
+
+
+
+\section{INTRODUCTION}\label{sec:intro}
+
+Discrete Event Simulations are simulations in which the events in the system occur at specific instants in time. The time between events is unimportant to the simulation, and so the simulator only needs to process times at which events occur. This is in contrast to continuous simulations such as physics simulations, where a fixed time step is used, requiring the simulator to perform processing at every step. 
+
+Because simulations often have long run times, it is natural to attempt to distribute the work load of a single simulation across multiple processing units. Parallel Discrete Event Simulation (often referred to by the acronym PDES) is an active area of research that aims to maximize the performance of these simulations. While spreading the computation cost of a simulation across multiple computers can reduce the run time, the effect is often much less than the ideal linear speedup. 
+
+One reason that performance does not scale perfectly is that there is a large cost to communicating between processes, especially if the processes are on different computers. Sending a message over the network is significantly slower than sending a message between processes on the same machine. Therefore, decreasing the amount of network traffic necessary in a simulation has the potential to significantly improve performance.
+
+In this paper, we present a method of partitioning simulation objects between processors that aims to minimize network traffic and while balancing processor load, with the goal of reducing overall simulation time. We first profile the message passing characteristics of a number of real world models, then use the collected data to perform partitioning. We find that in real world models, speedups of up to six times can be achieved with this method. 
+
+\section{BACKGROUND}\label{sec:background}
+
+A Discrete Event Simulation primarily deals with sending events between objects. In the case of a digital circuit model, the objects are the gates, and the events are logic signals sent between connected gates. The simulation is not concerned with the physical propagation of the electrical signals across wires. When the output of a gate changes, the simulator calculates the propagation time of the signal, then fast forwards its simulation clock to the time that the signal arrives at its destination. The simulator then calculates the new output of the gate that received the signal, and repeats the process. For models in which the time required to process an event is small, the time spent sending and receiving events can dominate the simulation.
+
+\subsection{Distributed Simulation}
+
+The cost of transmitting events is compounded in a distributed environment due to the long latencies inherent in network traffic. In a distributed simulation, the set of objects is divided into a number of partitions equal to the number of simulation nodes, and each node processes events from a single partition. Objects can communicate with other objects on the same node, which only requires a memory access, or they can communicate with objects on other nodes, in which case a network message is sent. At any instant of the simulation, there may be many pending events waiting to be processed, since an object can create multiple events in response to a single input. These events may all be scheduled to arrive at their destination at different times.
+
+In a sequential simulation, the simulator simply processes the event with the lowest time stamp, which is the next event to occur. However, in a distributed simulation, the simulation nodes bust communicate to ensure that the simulation results remain correct. Because the time step in a discrete event simulation is not fixed, each simulation node will advance at a different speed. This will result in a faster running node receiving events scheduled to happen in its past. There are two primary ways to deal with this causality issue. 
+
+Conservatively Synchronized simulators deal with the issue by sending synchronization messages between nodes to ensure that no event violate causality. This will ensure the correctness of the simulation, but the synchronization has a high overhead cost, and requires that the entire simulation run at the speed of the slowest node. Another popular method to ensure correctness, and the method that this paper deals with, is Optimistically Synchronized simulation. Optimistic Synchronization has all nodes run at their full speed without sending any synchronization messages. If a simulator receives an event with a timestamp in its past, it rolls back its state to a time before that message, then proceeds to process events as normal. 
+
+\subsection{Partitioning and Load Balancing}
+
+Even for optimistically synchronized simulations, it is important that each simulation node perform similar amounts of processing. If one node has an unusually large portion of the workload, there will be a high number of rollback on the other simulators, and overall performance of the simulation will be reduced. Therefore, it is desirable to divide the workload evenly between processors. For most simulation models, the time to process a single event fairly constant, regardless of the objects sending or receiving the event. Therefore, the workload can be balanced by simply balancing the numbers of objects on each node.
+
+A more difficult problem is determining which combination of objects to place on each node. If a simulation uses \(N\) nodes, and objects are distributed randomly to each node, the probability that an event will be sent to a different node is \(\frac{N-1}{N}\). This means that a large amount of network traffic is required, even for a small number of nodes. In an environment with four nodes, approximately \(75\%\) of events in the simulation will require a network message. If possible, it is advantageous to partition the nodes is a way that minimizes network traffic. In a synthetic model in which each object sends events uniformly to all other objects, the selection of partitions would have little impact on performance. However, in real world models, the event traffic can be extremely non-uniform. Although the amount of work required to process any single event is roughly the same for all events, the number of events sent from different objects can vary widely. In this case, the selection of partitions will have a large impact on the amount of network traffic, and consequently on the performance of the simulation.
+
+
+\section{RELATED WORK}\label{sec:related}
+
+% \cite{bahulkar-12,lijun-09,subramanian-01}
+
+\section{PROFILE BASED PARTITONING FOR TIME WARP}\label{sec:partitioning}
+
+Although it is possible to achieve good results by using model specific knowledge to partition objects, a more general method is desirable. We hypothesize that the sequential characteristics of a model are representative of its performance in a distributed setting. Therefore, we collect data about the model in a sequential setting, and use this data to drive the partitioning algorithm. The ultimate goal is to minimize the amount of cross-partition messages, thereby reducing the amount of network traffic necessary in the distributed simulation. 
+
+Profiling is performed by running a model sequentially and recording the number of events sent between each pair of objects. This data is represented by an undirected graph in which each vertex represents a simulation object, and each edge signifies that the vertices joined by that edge communicated during the simulation. We then weight the edges by the number of events sent between each pair of objects. Figure~\ref{fig:iscasUnpart} shows the data collected from a run of an ISCAS’89 model, which is a gate-level logic circuit. Each vertex is a single logic component (such as an XOR gate), and the edges are a heat map showing the amount of event traffic between objects. Larger, red lines indicate a large number of events were sent between the corresponding nodes, while smaller green and blue lines show a small number of events. For this model, the most active objects communicated with each other several orders of magnitude more than the average nodes, as can be seen in figure~\ref{fig:s9234_histo}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[clip=true,width=0.5\textwidth]{s9234_histo}
+\caption{Histogram of messages per edge for ISCAS'89 s9234 simulation}
+\label{fig:s9234_histo}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[clip=true,width=0.5\textwidth]{s9234_1part}
+\caption{Heatmap of messages sent during the ISCAS'89 s9234 simulation}
+\label{fig:iscasUnpart}
+\end{figure}
+
+Once we have this weighted graph, we can partition the simulation objects by partitioning the graph and mapping the graph partitions back to the simulation objects. Since the weight of each edge represents the number of events passed between objects, performing a weighted minimum cut of the graph will minimize the amount of events passing between nodes. To find the minimum graph cut, we used METIS, a library that can perform multi-level k-way partitioning and recursive bisection of weighted graphs. Figure \ref{fig:iscas4rr} shows the above graph partitioned into four partitions according to a random algorithm. The random algorithm naively places simulation objects into partitions in a round-robin manner without using any information about the objects themselves. As expected, \(75.83\%\) of messages cross between partitions. In contrast, figure \ref{fig:iscas4part} shows the same graph partitioned using METIS to produce a minimum cut in which only \(1.38\%\) of messages cross between partitions. Figure \ref{fig:iscas8part} shows the same graph partitioned into 8 partitions, with \(1.75\%\) of messages crossing partitions.
+
+\begin{figure}[h]
+\centering
+\includegraphics[clip=true,width=0.5\textwidth]{s9234_4rr}
+\caption{Heatmap of messages sent during the ISCAS'89 s9234 simulation, partitioned randomly into four partitions}
+\label{fig:iscas4rr}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[clip=true,width=0.5\textwidth]{s9234_4part}
+\caption{Heatmap of messages sent during the ISCAS'89 s9234 simulation, partitioned into four partitions using the profile guided algorithm}
+\label{fig:iscas4part}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[clip=true,width=0.5\textwidth]{s9234_8part}
+\caption{Heatmap of messages sent during the ISCAS'89 s9234 simulation, partitioned into eight partitions using the profile guided algorithm}
+\label{fig:iscas8part}
+\end{figure}
+
+\section{EXPERIMENTAL ANALYSIS}\label{sec:analysis}
+
+We evaluated the performance of this algorithm using a number of real world simulation models. All tests were run on a four-core, multi-threaded Intel Xeon Beowulf cluster.
+
+\subsection{ISCAS’89}
+The ISCAS’89 benchmark is a standard set of circuits that make use of both combinatorial and stateful logic. Three separate circuits from this benchmark were used: s5378, s9234, and s38584.1. The characteristics of each can be found in table~\ref{table:iscasStats}. 
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}llll@{}}
+\toprule
+Circuit  & Flip Flops & Inverters & Gates \\ \midrule
+s5374    & 179        & 1775      & 1004  \\
+s9234    & 228        & 3570      & 2027  \\
+s38584.1 & 1426       & 7805      & 11448 \\ \bottomrule
+\end{tabular}
+\caption{Characteristics of the ISCAS'89 benchmark circuits examined in this paper}
+\label{table:iscasStats}
+\end{table}
+
+\subsection{RAID}
+The RAID model is a simulation of a RAID-5 disk array. It models the characteristics of the array during reading and writing, including the calculation of parity information across the array. The model used in this evaluation contained 32 disks, 8 RAID controllers and 96 Input Processes generating disk activity.
+
+\subsection{Results}
+
+The benchmarks were run with the Profile Guided Partitioning algorithm described above, and with a random partitioning algorithm. The simulation times for the benchmarks are shown in table~\ref{table:benchmarks}. The Profile Guided Partitiong algorithm outperforms naive partitioning by a factor of \(1.74\times\) to \(6.04\times\), depending on the simulation model and number of nodes.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lllll@{}}
+\toprule
+Model          & No. of Nodes & Random & Profile Guided & Speedup       \\ \midrule
+ISCAS89: s5378 & 2            & 15.57  & 6.19           & \(2.51\times\)    \\
+               & 4            & 9.12   & 4.25           & \(2.15\times\)    \\
+               & 8            & 6.77   & 3.20           & \(2.11\times\)    \\ \midrule
+ISCAS89: s9234 & 2            & 64.76  & 10.73          & \(6.04\times\)    \\
+               & 4            & 35.39  & 7.23           & \(4.89\times\)    \\
+               & 8            & 23.23  & 13.37          & \(1.74\times\)    \\ \midrule
+RAID           & 2            & 103.79 & 20.41          & \(5.09\times\)    \\
+               & 4            & 46.16  & 9.78           & \(4.72\times\)    \\
+               & 8            & 26.22  & 4.86           & \(5.40\times\)    \\ \bottomrule
+\end{tabular}
+\caption{Simulation Run Time (in seconds) and Speedup for the different partitioning algorithms}
+\label{table:benchmarks}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\benchbar{103.79}{46.16}{26.22}{20.41}{9.87}{4.86}
+\caption {Run time of RAID simulation}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\benchbar{15.56}{9.12}{6.76}{6.19}{4.24}{3.20}
+\caption {Run time of ISCAS'89 simulation using the s5378 circuit}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\benchbar{64.76}{35.39}{23.23}{10.73}{7.23}{13.37}
+\caption {Run time of ISCAS'89 simulation using the s9234 circuit}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\benchbar{64.92}{28.05}{13.25}{40.92}{11.76}{3.87}
+\caption {Run time of ISCAS'89 simulation using the s38584.1 circuit}
+\end{figure}
+
+\section{CONCLUSIONS}\label{sec:conclusions}
+
+
+\section*{ACKNOWLEGEMENTS}
+
+Support for this work was provided in part by the National Science Foundation
+under grant CNS--0915337.
+
+\bibliographystyle{wsc}
+\bibliography{refs}
+
+\section*{AUTHOR BIOGRAPHIES}
+
+\noindent \textbf{AJ Alt} is a graduate student in the Department of Electrical Engineering and Computing Systems at the University of Cincinnati. His email address is \email{altaj@mail.uc.edu}.\\
+
+\noindent \textbf{PHILIP A. WILSEY} is a professor in the Department of Electrical Engineering and Computing Systems at the University of Cincinnati. His is an experimentalist working in parallel and distributed systems, embedded system, and point-of-care medical devices. He is currently studying the challenges of parallelism in multi-core and many-core platforms and is studying the optimization of Beowulf clusters composed of multi-/many-core processors to support efficient parallel execution of fine grained applications. His email address is \email{wilseypa@gmail.com} and his web pages are \url{http://secs.ceas.uc.edu/~paw} and \url{http://github.com/wilseypa}.
+
+\end{document}
+
