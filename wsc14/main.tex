@@ -195,20 +195,29 @@ The benchmarks were run with the Profile Guided Partitioning algorithm described
 \centering
 \begin{tabular}{@{}lllll@{}}
 \toprule
-Model          & No. of Nodes & Random & Profile Guided & Speedup       \\ \midrule
-ISCAS89: s5378 & 2            & 15.57  & 6.19           & \(2.51\times\)    \\
-               & 4            & 9.12   & 4.25           & \(2.15\times\)    \\
-               & 8            & 6.77   & 3.20           & \(2.11\times\)    \\ \midrule
-ISCAS89: s9234 & 2            & 64.76  & 10.73          & \(6.04\times\)    \\
-               & 4            & 35.39  & 7.23           & \(4.89\times\)    \\
-               & 8            & 23.23  & 13.37          & \(1.74\times\)    \\ \midrule
-RAID           & 2            & 103.79 & 20.41          & \(5.09\times\)    \\
-               & 4            & 46.16  & 9.78           & \(4.72\times\)    \\
-               & 8            & 26.22  & 4.86           & \(5.40\times\)    \\ \bottomrule
+Model             & No. of Nodes & Random & Profile Guided & Speedup           \\ \midrule
+ISCAS89: s5378    & 2            & 15.57  & 6.19           & \(2.51\times\)    \\
+                  & 4            & 9.12   & 4.25           & \(2.15\times\)    \\
+                  & 8            & 6.77   & 3.20           & \(2.11\times\)    \\ \midrule
+ISCAS89: s9234    & 2            & 64.76  & 10.73          & \(6.04\times\)    \\
+                  & 4            & 35.39  & 7.23           & \(4.89\times\)    \\
+                  & 8            & 23.23  & 13.37          & \(1.74\times\)    \\ \midrule
+ISCAS89: s38584.1 & 2            & 64.92  & 40.92          & \(1.59\times\)    \\
+                  & 4            & 28.05  & 11.76          & \(2.39\times\)    \\
+                  & 8            & 13.25  & 3.87           & \(3.42\times\)    \\ \midrule
+RAID              & 2            & 103.79 & 20.41          & \(5.09\times\)    \\
+                  & 4            & 46.16  & 9.78           & \(4.72\times\)    \\
+                  & 8            & 26.22  & 4.86           & \(5.40\times\)    \\ \bottomrule
 \end{tabular}
 \caption{Simulation Run Time (in seconds) and Speedup for the different partitioning algorithms}
 \label{table:benchmarks}
 \end{table}
+
+%%% Should I include partitioning pictures for all of the models? There's already a lot of figures.
+
+Although significant speedup is observed in all models, the amount and scaling varies. The speedup for the RAID model remains roughly constant as the number of nodes increases. This model has a regular sructure, which would allow the partitioning algorithm to work effectively over the range of partitions. It is likely that this model is compute bound at any number of nodes when partitioned correctly.
+
+The various circuits of the ISCAS'89 benchmark each exhibit different speedup scalings. The speedup obtained with Profile Guided partitiong for s5378 circuit decreases slightly for the s5378 circuit as the number of nodes increases. The speedup decreases sharply with the number of nodes for the s9234 circuit, and increases with the number of nodes for the s38584.1 circuit. 
 
 \begin{figure}[h]
 \centering
