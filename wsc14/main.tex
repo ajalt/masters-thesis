@@ -1,6 +1,4 @@
 
-%% AJ: the paper can be a maximum of 12 pages and we should target 12 pages....
-
 \input{wsc14style.tex}
 
 \documentclass{wscpaperproc}
@@ -86,7 +84,7 @@ Cincinnati, OH 45221, USA
 
 \section*{ABSTRACT}
 
-
+Performance of large Discrete Event Simulations is often improved by employing distributing the simulation across multiple processing nodes. Distributed environments often have high communication latencies which reduce the potential performance of parallel simulations. Partitioning of simulation objects in real world models can have a large impact on the amount of network traffic necessary in the simulation, and consequently the overall performance. This paper presents our studies on profiling the characteristics of simulation models in a sequential environment, and using the collected data to perform partitioning of the models in parallel simulations. Our benchmarks show that Profile Guided Partitioning can result in large performance gains in parallel simulations.
 
 \section{INTRODUCTION}\label{sec:intro}
 
@@ -119,18 +117,20 @@ A more difficult problem is determining which combination of objects to place on
 
 \section{RELATED WORK}\label{sec:related}
 
-% \cite{bahulkar-12,lijun-09,subramanian-01}
+%% Are my citations and use of et al. correct in this paragraph?
+
+Partitioning of parallel simulations is an active area of research. Subramanian et al.\ use analysis of VHDL logic circuits to perform multilevel partitioning on a Time Warp architecture \cite{subramanian-01}. Li et al.\ present a novel approach to partitioning VLSI circuits by partitioning digital circuits on the scale of Verilog models instead of a flattened netlist. Bahulkar et al.\ perform profiling of dynamic behavior of parallel simulations, and compare the performance of their algorithm across various model types in order to determine where dynamic profiling is most effective \cite{bahulkar-12}. Peschlow et al.\ define a method of classifying processing requirements of simulation objects in a platform-independent manner, and integrate this model into a strategy of dynamic partitioning \cite{peschlow-07}.
 
 \section{PROFILE BASED PARTITONING FOR TIME WARP}\label{sec:partitioning}
 
 Although it is possible to achieve good results by using model specific knowledge to partition objects, a more general method is desirable. We hypothesize that the sequential characteristics of a model are representative of its performance in a distributed setting. Therefore, we collect data about the model in a sequential setting, and use this data to drive the partitioning algorithm. The ultimate goal is to minimize the amount of cross-partition messages, thereby reducing the amount of network traffic necessary in the distributed simulation. 
 
-Profiling is performed by running a model sequentially and recording the number of events sent between each pair of objects. This data is represented by an undirected graph in which each vertex represents a simulation object, and each edge signifies that the vertices joined by that edge communicated during the simulation. We then weight the edges by the number of events sent between each pair of objects. Figure~\ref{fig:iscasUnpart} shows the data collected from a run of an ISCAS’89 model, which is a gate-level logic circuit. Each vertex is a single logic component (such as an XOR gate), and the edges are a heat map showing the amount of event traffic between objects. Larger, red lines indicate a large number of events were sent between the corresponding nodes, while smaller green and blue lines show a small number of events. For this model, the most active objects communicated with each other several orders of magnitude more than the average nodes, as can be seen in figure~\ref{fig:s9234_histo}.
+Profiling is performed by running a model sequentially and recording the number of events sent between each pair of objects. This data is represented by an undirected graph in which each vertex represents a simulation object, and each edge signifies that the vertices joined by that edge communicated during the simulation. We then weight each edge by the number of events sent between the pair of objects joined by that edge. Figure~\ref{fig:iscasUnpart} shows the data collected from a run of an ISCAS’89 model, which is a gate-level logic circuit. Each vertex is a single logic component (such as an XOR gate), and the edges are a heat map showing the amount of event traffic between objects. Larger, red lines indicate a large number of events were sent between the corresponding nodes, while smaller green and blue lines show a small number of events. For this model, the most active objects communicated with each other several orders of magnitude more than average, as can be seen in figure~\ref{fig:s9234_histo}. This graph shows a power-law distribution that is common in real-world models. 
 
 \begin{figure}[h]
 \centering
 \includegraphics[clip=true,width=0.5\textwidth]{s9234_histo}
-\caption{Histogram of messages per edge for ISCAS'89 s9234 simulation}
+\caption{Histogram of edge weights for ISCAS'89 s9234 simulation}
 \label{fig:s9234_histo}
 \end{figure}
 
@@ -141,7 +141,10 @@ Profiling is performed by running a model sequentially and recording the number 
 \label{fig:iscasUnpart}
 \end{figure}
 
-Once we have this weighted graph, we can partition the simulation objects by partitioning the graph and mapping the graph partitions back to the simulation objects. Since the weight of each edge represents the number of events passed between objects, performing a weighted minimum cut of the graph will minimize the amount of events passing between nodes. To find the minimum graph cut, we used METIS, a library that can perform multi-level k-way partitioning and recursive bisection of weighted graphs. Figure \ref{fig:iscas4rr} shows the above graph partitioned into four partitions according to a random algorithm. The random algorithm naively places simulation objects into partitions in a round-robin manner without using any information about the objects themselves. As expected, \(75.83\%\) of messages cross between partitions. In contrast, figure \ref{fig:iscas4part} shows the same graph partitioned using METIS to produce a minimum cut in which only \(1.38\%\) of messages cross between partitions. Figure \ref{fig:iscas8part} shows the same graph partitioned into 8 partitions, with \(1.75\%\) of messages crossing partitions.
+Once we have this weighted graph, we can partition the simulation objects by partitioning the graph and mapping the graph partitions back to the simulation objects. Since the weight of each edge represents the number of events passed between objects, performing a weighted minimum cut of the graph will minimize the amount of events passing between nodes. To find the minimum graph cut, we used METIS, a library that can perform multi-level k-way partitioning and recursive bisection of weighted graphs \cite{karypis-98}. Although several partitioning libraries were considered, METIS was selected because it is highly configurable and well supported. METIS is capable of performing a min-cut while balancing vertex weights between partitions. We use this capability by assigning equal weights to all vertices, which allows us to balance processing load while minimizing network traffic.
+
+ Figure \ref{fig:iscas4rr} shows the above graph partitioned into four partitions according to a random algorithm. The random algorithm naively places simulation objects into partitions in a round-robin manner without using any information about the objects themselves. As expected, \(75.83\%\) of messages cross between partitions. In contrast, figure~\ref{fig:iscas4part} shows the same graph partitioned using METIS to produce a minimum cut in which only \(1.38\%\) of messages cross between partitions. Figure~\ref{fig:iscas8part} shows the same graph partitioned into 8 partitions, with \(1.75\%\) of messages crossing partitions.
+
 
 \begin{figure}[h]
 \centering
@@ -166,10 +169,10 @@ Once we have this weighted graph, we can partition the simulation objects by par
 
 \section{EXPERIMENTAL ANALYSIS}\label{sec:analysis}
 
-We evaluated the performance of this algorithm using a number of real world simulation models. All tests were run on a four-core, multi-threaded Intel Xeon Beowulf cluster.
+We evaluated the performance of this algorithm using a number of real world simulation models. All tests were run on a Beowulf cluster composed of four-core, hyperthreaded Intel Xeon processors running at 2.33GHz.
 
 \subsection{ISCAS’89}
-The ISCAS’89 benchmark is a standard set of circuits that make use of both combinatorial and stateful logic. Three separate circuits from this benchmark were used: s5378, s9234, and s38584.1. The characteristics of each can be found in table~\ref{table:iscasStats}. 
+The ISCAS’89 benchmark is a standard set of circuits that make use of both combinatorial and stateful logic. Each circuit in the benchmark contains a number of inputs and outputs, logic gates, and D-Flip Flops. We study three separate circuits from this benchmark: s5378, s9234, and s38584.1. The characteristics of each can be found in table~\ref{table:iscasStats}.
 
 \begin{table}[h]
 \centering
@@ -217,7 +220,9 @@ RAID              & 2            & 103.79 & 20.41          & \(5.09\times\)    \
 
 Although significant speedup is observed in all models, the amount and scaling varies. The speedup for the RAID model remains roughly constant as the number of nodes increases. This model has a regular sructure, which would allow the partitioning algorithm to work effectively over the range of partitions. It is likely that this model is compute bound at any number of nodes when partitioned correctly.
 
-The various circuits of the ISCAS'89 benchmark each exhibit different speedup scalings. The speedup obtained with Profile Guided partitiong for s5378 circuit decreases slightly for the s5378 circuit as the number of nodes increases. The speedup decreases sharply with the number of nodes for the s9234 circuit, and increases with the number of nodes for the s38584.1 circuit. 
+The various circuits of the ISCAS'89 benchmark each exhibit different speedup scaling behaviors. The speedup obtained with Profile Guided Partitioning for s5378 circuit decreases slightly for the s5378 circuit as the number of nodes increases. The speedup decreases sharply with the number of nodes for the s9234 circuit, and increases with the number of nodes for the s38584.1 circuit.
+
+ As can be seen in figure \ref{fig:iscas4part}, the bulk of the messages sent during the simulation are contained in a subset of the objects. For small numbers of partitions, it is possible to select partitions in such a way that all of the high traffic objects are contained in the same partition. As the number of partitions increases, it becomes necessary to split these high traffic objects across partitions, which may explain the narrowing performance gap between Random Partitioning and the Random algorithm.
 
 \begin{figure}[h]
 \centering
@@ -245,6 +250,7 @@ The various circuits of the ISCAS'89 benchmark each exhibit different speedup sc
 
 \section{CONCLUSIONS}\label{sec:conclusions}
 
+In this paper, we presented a method of performing partitioning on arbitrary Discrete Event Simulation models. We demonstrated that the event characteristics of a model in a sequential environment are capable of directing a partitioning strategy for that model in a parallel simulation. We found that this algorithm can result in up to a \(6\times\) speedup over naive partitioning. The speedup obtained varies between models, indicating that the model topology can have a significant effect on the performance of partitioning. Future work could attempt to identify model topologies that are most amenable to Profile Guided Partitioning, and perhaps perform graph minimum cuts that take additional behavior other than message quantity into account. 
 
 \section*{ACKNOWLEGEMENTS}
 
