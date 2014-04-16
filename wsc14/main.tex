@@ -57,7 +57,7 @@
 % AUTHOR: AUTHOR NAMES GO HERE
 % FORMAT AUTHORS NAMES Like: Author1, Author2 and Author3 (last names)
 %
-%		You need to change the author listing below!
+%       You need to change the author listing below!
 %               Please list ALL authors using last name only, separate by a comma except
 %               for the last author, separate with "and"
 %
@@ -84,99 +84,96 @@ Cincinnati, OH 45221, USA
 
 \section*{ABSTRACT}
 
-Performance of large Discrete Event Simulations is often improved by employing distributing the simulation across multiple processing nodes. Distributed environments often have high communication latencies which reduce the potential performance of parallel simulations. Partitioning of simulation objects in real world models can have a large impact on the amount of network traffic necessary in the simulation, and consequently the overall performance. This paper presents our studies on profiling the characteristics of simulation models in a sequential environment, and using the collected data to perform partitioning of the models in parallel simulations. Our benchmarks show that Profile Guided Partitioning can result in large performance gains in parallel simulations.
-
+Performance of large Discrete Event Simulations is often improved by distributing the simulation across multiple processing nodes and executing the simulation in parallel. Unfortunately, distributed environments often have high communication latencies that can reduce the potential performance of parallel simulations. Effective partitioning of the concurrent simulation objects of the real world models can have a large impact on the amount of network traffic necessary in the simulation, and consequently the overall performance. This paper presents our studies on profiling the characteristics of simulation models in a sequential environment and using the collected data to perform partitioning of the models for concurrent execution. Our benchmarks show that Profile Guided Partitioning can result in dramatic performance gains in the parallel simulations. In some of the studied cases, 5-fold improvements of the run time of the concurrently executed simulations were observed.
 \section{INTRODUCTION}\label{sec:intro}
 
-Discrete Event Simulations are simulations in which the events in the system occur at specific instants in time. The time between events is unimportant to the simulation, and so the simulator only needs to process times at which events occur. This is in contrast to continuous simulations such as physics simulations, where a fixed time step is used, requiring the simulator to perform processing at every step. 
+Discrete Event Simulations are simulations in which the events in the system occur at specific instants in time \cite{law-00,fujimoto-90}. The time between events is unimportant to the simulation, and so the simulator only needs to process times at which events occur. This is in contrast to continuous simulations such as physics simulations, where a fixed time step is used, requiring the simulator to perform processing at every unit time step.
 
-Because simulations often have long run times, it is natural to attempt to distribute the work load of a single simulation across multiple processing units. Parallel Discrete Event Simulation (often referred to by the acronym PDES) is an active area of research that aims to maximize the performance of these simulations. While spreading the computation cost of a simulation across multiple computers can reduce the run time, the effect is often much less than the ideal linear speedup. 
+Because simulations often have long run times, it is natural to attempt to distribute the work load of a single simulation across multiple processing units. Parallel Discrete Event Simulation (often referred to by the acronym PDES) is an active area of research that aims to maximize the performance of these simulations \cite{fujimoto-90}. While spreading the computation cost of a simulation across multiple computers can reduce the run time, the effect is often much less than the ideal linear speedup.
 
-One reason that performance does not scale perfectly is that there is a large cost to communicating between processes, especially if the processes are on different computers. Sending a message over the network is significantly slower than sending a message between processes on the same machine. Therefore, decreasing the amount of network traffic necessary in a simulation has the potential to significantly improve performance.
+One reason that performance does not scale perfectly is that there is a large cost to communicating between processes, especially if the processes are on different computers \cite{carothers-94}. Sending a message over the network is significantly slower than sending a message between processes on the same machine. This problem is especially problematic in parallel discrete-event simulation where event processing is mostly a lightweight process and where events are exchanged frequently. While higher performance hardware such as Infiniband \cite{rashti-07} and lightweight messaging layers \cite{subramoni-09} in the operating system can help this problem, significant performance improvements can be made by decreasing the total amount of network traffic required by the parallel simulation. More specifically substantial performance gains are possible when the event communication frequencies experienced among the nodes in the compute cluster are minimized.
 
-In this paper, we present a method of partitioning simulation objects between processors that aims to minimize network traffic and while balancing processor load, with the goal of reducing overall simulation time. We first profile the message passing characteristics of a number of real world models, then use the collected data to perform partitioning. We find that in real world models, speedups of up to six times can be achieved with this method. 
+In this paper, we present a method of partitioning simulation objects between processors that aims to minimize network traffic and while balancing processor load, with the goal of reducing overall simulation time. We first profile the message passing characteristics of a number of real world models, then use the collected data to perform partitioning. We find that in real world models, speedups of up to six times can be achieved with this method.
+
+The remainder of this manuscript is organized as follows. Section \ref{sec:background} presents some background in distributed simulation and partitioning. Section \ref{sec:related} presents some of the related work in partitioning for parallel simulation. Section \ref{sec:partitioning} presents our work on profile-based partitioning for parallel simulation. Section \ref{sec:analysis} contains a set of experiments used to evaluate the profile-based partitioning. Finally, Section \ref{sec:conclusions} contains some concluding remarks.
 
 \section{BACKGROUND}\label{sec:background}
 
-A Discrete Event Simulation primarily deals with sending events between objects. In the case of a digital circuit model, the objects are the gates, and the events are logic signals sent between connected gates. The simulation is not concerned with the physical propagation of the electrical signals across wires. When the output of a gate changes, the simulator calculates the propagation time of the signal, then fast forwards its simulation clock to the time that the signal arrives at its destination. The simulator then calculates the new output of the gate that received the signal, and repeats the process. For models in which the time required to process an event is small, the time spent sending and receiving events can dominate the simulation.
+A Discrete Event Simulation primarily deals with sending events between objects \cite{law-00,fujimoto-90}. In the case of a digital circuit model, the objects are the gates, and the events are logic signals sent between connected gates. The simulation is not concerned with the physical propagation of the electrical signals across wires. When the output of a gate changes, the simulator calculates the propagation time of the signal, then fast forwards its simulation clock to the time that the signal arrives at its destination. The simulator then calculates the new output of the gate that received the signal, and repeats the process. For models in which the time required to process an event is small, the time spent sending and receiving events can dominate the simulation.
 
 \subsection{Distributed Simulation}
 
-The cost of transmitting events is compounded in a distributed environment due to the long latencies inherent in network traffic. In a distributed simulation, the set of objects is divided into a number of partitions equal to the number of simulation nodes, and each node processes events from a single partition. Objects can communicate with other objects on the same node, which only requires a memory access, or they can communicate with objects on other nodes, in which case a network message is sent. At any instant of the simulation, there may be many pending events waiting to be processed, since an object can create multiple events in response to a single input. These events may all be scheduled to arrive at their destination at different times.
+The cost of transmitting events is compounded in a distributed environment due to the long latencies inherent in network traffic. In a distributed simulation, the set of objects is divided into a number of partitions equal to the number of simulation nodes, and each node processes events from a single partition \cite{fujimoto-90}. Objects can communicate with other objects on the same node, which only requires a memory access; or they can communicate with objects on other nodes, in which case a network message is sent. At any instant of the simulation, there may be many pending events waiting to be processed, since an object can create multiple events in response to a single input. These events may all be scheduled to arrive at their destination at different times.
 
-In a sequential simulation, the simulator simply processes the event with the lowest time stamp, which is the next event to occur. However, in a distributed simulation, the simulation nodes bust communicate to ensure that the simulation results remain correct. Because the time step in a discrete event simulation is not fixed, each simulation node will advance at a different speed. This will result in a faster running node receiving events scheduled to happen in its past. There are two primary ways to deal with this causality issue. 
+In a sequential simulation, the simulator simply processes the event with the lowest time stamp, which is the next event to occur. However, in a distributed simulation, the simulation nodes must communicate to ensure that the simulation results remain correct. Because the time step in a discrete event simulation is not fixed, each simulation node will advance at a different rates of time. Without synchronization between the concurrent nodes, this will result in a faster running node receiving events scheduled to happen in its past. This is a causal violation of the events in the simulation model. Thus the parallel simulator requires some synchronization mechanism to ensure execution of events in their proper time order. While a centralized synchronization mechanism is possible, a distributed mechanism is preferable. For distributed synchronization, there are two widely used strategies, namely: \emph{conservative synchronization} or \emph{optimistic synchronization} \cite{fujimoto-90}.
 
-Conservatively Synchronized simulators deal with the issue by sending synchronization messages between nodes to ensure that no event violate causality. This will ensure the correctness of the simulation, but the synchronization has a high overhead cost, and requires that the entire simulation run at the speed of the slowest node. Another popular method to ensure correctness, and the method that this paper deals with, is Optimistically Synchronized simulation. Optimistic Synchronization has all nodes run at their full speed without sending any synchronization messages. If a simulator receives an event with a timestamp in its past, it rolls back its state to a time before that message, then proceeds to process events as normal. 
+Conservatively Synchronized simulators deal with the causality issue by sending synchronization messages between nodes to ensure that no out-of-order event processing occurs. This will ensure the correctness of the simulation, but the synchronization has a high overhead cost, and requires that the entire simulation run at the speed of the slowest node. Another popular method to perform distributed synchronization is Optimistic Synchronization. While there are several optimistic mechanisms \cite{chandy-89,jefferson-85}, the focus of this manuscript is with parallel simulation synchronized with the Time Warp Mechanism \cite{jefferson-85}. Following the Time Warp model, all concurrently executing nodes process events in their event queues as quickly as possible without regard to the progress of the event processing rates of other nodes. If a simulation at one node receives an event with a time stamp in its past, it rolls back its state to a time before that message, and then proceeds to process events as normal. Additional details on the Time Warp mechanism are unnecessary for the specifics of this manuscript. Interested readers can find additional information in \cite{fujimoto-90,jefferson-85}. In the remainder of this paper, we will use the terms Time Warp and optimistic synchronization interchangeably.
 
 \subsection{Partitioning and Load Balancing}
 
-Even for optimistically synchronized simulations, it is important that each simulation node perform similar amounts of processing. If one node has an unusually large portion of the workload, there will be a high number of rollback on the other simulators, and overall performance of the simulation will be reduced. Therefore, it is desirable to divide the workload evenly between processors. For most simulation models, the time to process a single event fairly constant, regardless of the objects sending or receiving the event. Therefore, the workload can be balanced by simply balancing the numbers of objects on each node.
+Even for optimistically synchronized simulations, it is important that each simulation node advance their simulation times at rates nearly equal to the other concurrently executing nodes. If one node has an unusually large portion of the workload, there will be a high number of rollback on the other simulators, and overall performance of the simulation will be reduced. Therefore, it is desirable to divide the workload evenly between processors. For most simulation models, the time to process a single event fairly constant, regardless of the objects sending or receiving the event. Therefore, the workload can be balanced by simply balancing the numbers of objects on each node.
 
 A more difficult problem is determining which combination of objects to place on each node. If a simulation uses \(N\) nodes, and objects are distributed randomly to each node, the probability that an event will be sent to a different node is \(\frac{N-1}{N}\). This means that a large amount of network traffic is required, even for a small number of nodes. In an environment with four nodes, approximately \(75\%\) of events in the simulation will require a network message. If possible, it is advantageous to partition the nodes is a way that minimizes network traffic. In a synthetic model in which each object sends events uniformly to all other objects, the selection of partitions would have little impact on performance. However, in real world models, the event traffic can be extremely non-uniform. Although the amount of work required to process any single event is roughly the same for all events, the number of events sent from different objects can vary widely. In this case, the selection of partitions will have a large impact on the amount of network traffic, and consequently on the performance of the simulation.
 
-
 \section{RELATED WORK}\label{sec:related}
 
-%% Are my citations and use of et al. correct in this paragraph?
+Partitioning of parallel simulations is an active area of research. Subramanian \emph{et al} use analysis of VHDL logic circuits to perform multilevel partitioning on a Time Warp architecture \cite{subramanian-01}. Li \emph{et al} present a novel approach to partitioning VLSI circuits by partitioning digital circuits on the scale of Verilog models instead of a flattened netlist \cite{lijun-09} . Bahulkar \emph{et al} perform profiling of dynamic behavior of parallel simulations, and compare the performance of their algorithm across various model types in order to determine where dynamic profiling is most effective \cite{bahulkar-12}. Peschlow \emph{et al} define a method of classifying processing requirements of simulation objects in a platform-independent manner, and integrate this model into a strategy of dynamic partitioning \cite{peschlow-07}. Guo and Hu develops a profile-based partitioning method for parallel simulation of large-scale wildfires \cite{guo-11}. While related to this work by virtue of using a profile based approach. Their profile data is drawn from a very specific knowledge of the simulation model under consideration (wildfires). Our work is entirely independent of the particular simulation model and can work for an simulation model.
 
-Partitioning of parallel simulations is an active area of research. Subramanian et al.\ use analysis of VHDL logic circuits to perform multilevel partitioning on a Time Warp architecture \cite{subramanian-01}. Li et al.\ present a novel approach to partitioning VLSI circuits by partitioning digital circuits on the scale of Verilog models instead of a flattened netlist. Bahulkar et al.\ perform profiling of dynamic behavior of parallel simulations, and compare the performance of their algorithm across various model types in order to determine where dynamic profiling is most effective \cite{bahulkar-12}. Peschlow et al.\ define a method of classifying processing requirements of simulation objects in a platform-independent manner, and integrate this model into a strategy of dynamic partitioning \cite{peschlow-07}.
+\section{PROFILE BASED PARTITIONING FOR TIME WARP}\label{sec:partitioning}
 
-\section{PROFILE BASED PARTITONING FOR TIME WARP}\label{sec:partitioning}
+Although it is possible to achieve good results by using model specific knowledge to partition objects, a more general method is desirable. We hypothesize that the sequential characteristics of a model are representative of its performance in a distributed setting. Therefore, we collect data about the model in a sequential setting, and use this data to drive the partitioning algorithm. The ultimate goal is to minimize the amount of cross-partition messages, thereby reducing the amount of network traffic necessary in the distributed simulation.
 
-Although it is possible to achieve good results by using model specific knowledge to partition objects, a more general method is desirable. We hypothesize that the sequential characteristics of a model are representative of its performance in a distributed setting. Therefore, we collect data about the model in a sequential setting, and use this data to drive the partitioning algorithm. The ultimate goal is to minimize the amount of cross-partition messages, thereby reducing the amount of network traffic necessary in the distributed simulation. 
-
-Profiling is performed by running a model sequentially and recording the number of events sent between each pair of objects. This data is represented by an undirected graph in which each vertex represents a simulation object, and each edge signifies that the vertices joined by that edge communicated during the simulation. We then weight each edge by the number of events sent between the pair of objects joined by that edge. Figure~\ref{fig:iscasUnpart} shows the data collected from a run of an ISCAS’89 model, which is a gate-level logic circuit. Each vertex is a single logic component (such as an XOR gate), and the edges are a heat map showing the amount of event traffic between objects. Larger, red lines indicate a large number of events were sent between the corresponding nodes, while smaller green and blue lines show a small number of events. For this model, the most active objects communicated with each other several orders of magnitude more than average, as can be seen in figure~\ref{fig:s9234_histo}. This graph shows a power-law distribution that is common in real-world models. 
-
-\begin{figure}[h]
+\begin{figure}
 \centering
-\includegraphics[clip=true,width=0.5\textwidth]{s9234_histo}
-\caption{Histogram of edge weights for ISCAS'89 s9234 simulation}
-\label{fig:s9234_histo}
+\includegraphics[clip=true,width=0.5\textwidth]{figs/s9234_1part}
+\caption{Heatmap of messages sent during the ISCAS'89 s9234
+simulation}\label{fig:iscasUnpart} 
 \end{figure}
 
-\begin{figure}[h]
+Profiling is performed by running a model sequentially and recording the number of events sent between each pair of objects. This data is represented by an undirected graph in which each vertex represents a simulation object and each edge signifies that the vertices joined by that edge communicated during the simulation. We then weight each edge by the number of events sent between the pair of objects joined by that edge. Figure~\ref{fig:iscasUnpart} shows the data collected from a run of an ISCAS ’89 model, which is a gate-level logic circuit. Each vertex is a single logic component (such as an XOR gate), and the edges are a heat map showing the amount of event traffic between objects. Larger, red lines indicate a large number of events were sent between the corresponding nodes, while smaller green and blue lines show a small number of events. For this model, the most active objects communicated with each other several orders of magnitude more than average, as can be seen in Figure~\ref{fig:s9234_histo}. This graph shows a power-law distribution that is common in real-world models.
+
+\begin{figure}
 \centering
-\includegraphics[clip=true,width=0.5\textwidth]{s9234_1part}
-\caption{Heatmap of messages sent during the ISCAS'89 s9234 simulation}
-\label{fig:iscasUnpart}
+\includegraphics[clip=true,width=0.5\textwidth]{figs/s9234_histo}
+\caption{Histogram of edge weights for ISCAS'89 s9234 simulation}\label{fig:s9234_histo} 
 \end{figure}
 
 Once we have this weighted graph, we can partition the simulation objects by partitioning the graph and mapping the graph partitions back to the simulation objects. Since the weight of each edge represents the number of events passed between objects, performing a weighted minimum cut of the graph will minimize the amount of events passing between nodes. To find the minimum graph cut, we used METIS, a library that can perform multi-level k-way partitioning and recursive bisection of weighted graphs \cite{karypis-98}. Although several partitioning libraries were considered, METIS was selected because it is highly configurable and well supported. METIS is capable of performing a min-cut while balancing vertex weights between partitions. We use this capability by assigning equal weights to all vertices, which allows us to balance processing load while minimizing network traffic.
 
- Figure \ref{fig:iscas4rr} shows the above graph partitioned into four partitions according to a random algorithm. The random algorithm naively places simulation objects into partitions in a round-robin manner without using any information about the objects themselves. As expected, \(75.83\%\) of messages cross between partitions. In contrast, figure~\ref{fig:iscas4part} shows the same graph partitioned using METIS to produce a minimum cut in which only \(1.38\%\) of messages cross between partitions. Figure~\ref{fig:iscas8part} shows the same graph partitioned into 8 partitions, with \(1.75\%\) of messages crossing partitions.
-
-
-\begin{figure}[h]
+\begin{figure}
 \centering
-\includegraphics[clip=true,width=0.5\textwidth]{s9234_4rr}
-\caption{Heatmap of messages sent during the ISCAS'89 s9234 simulation, partitioned randomly into four partitions}
-\label{fig:iscas4rr}
+\includegraphics[clip=true,width=0.5\textwidth]{figs/s9234_4rr}
+\caption{Heatmap of messages sent during the ISCAS'89 s9234 simulation, partitioned
+randomly into four partitions}\label{fig:iscas4rr}
 \end{figure}
 
-\begin{figure}[h]
+Figure \ref{fig:iscas4rr} shows the above graph partitioned into four partitions according to a random algorithm. The random algorithm naively places simulation objects into partitions in a round-robin manner without using any information about the objects themselves. As expected, \(75.83\%\) of messages cross between partitions. In contrast, Figure~\ref{fig:iscas4part} shows the same graph partitioned using METIS to produce a minimum cut in which only \(1.38\%\) of messages cross between partitions. Figure~\ref{fig:iscas8part} shows the same graph partitioned into 8 partitions, with \(1.75\%\) of messages crossing partitions.
+
+\begin{figure}
 \centering
-\includegraphics[clip=true,width=0.5\textwidth]{s9234_4part}
-\caption{Heatmap of messages sent during the ISCAS'89 s9234 simulation, partitioned into four partitions using the profile guided algorithm}
-\label{fig:iscas4part}
+\includegraphics[clip=true,width=0.5\textwidth]{figs/s9234_4part}
+\caption{Heatmap of messages sent during the ISCAS'89 s9234 simulation, partitioned into
+four partitions using the profile guided algorithm}\label{fig:iscas4part} 
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}
 \centering
-\includegraphics[clip=true,width=0.5\textwidth]{s9234_8part}
-\caption{Heatmap of messages sent during the ISCAS'89 s9234 simulation, partitioned into eight partitions using the profile guided algorithm}
-\label{fig:iscas8part}
+\includegraphics[clip=true,width=0.5\textwidth]{figs/s9234_8part}
+\caption{Heatmap of messages sent during the ISCAS'89 s9234 simulation, partitioned into
+eight partitions using the profile guided algorithm}\label{fig:iscas8part} 
 \end{figure}
 
 \section{EXPERIMENTAL ANALYSIS}\label{sec:analysis}
 
-We evaluated the performance of this algorithm using a number of real world simulation models. All tests were run on a Beowulf cluster composed of four-core, hyperthreaded Intel Xeon processors running at 2.33GHz.
+We evaluated the performance of this algorithm using a number of real world simulation models. All tests were run on a Beowulf cluster with each node composed of a quad-core, hyperthreaded Intel Xeon processors running at 2.33GHz.  The testing occurred with 2, 4, and 8 nodes (and, correspondingly, partitions) on the Beowulf cluster.
 
 \subsection{ISCAS’89}
-The ISCAS’89 benchmark is a standard set of circuits that make use of both combinatorial and stateful logic. Each circuit in the benchmark contains a number of inputs and outputs, logic gates, and D-Flip Flops. We study three separate circuits from this benchmark: s5378, s9234, and s38584.1. The characteristics of each can be found in table~\ref{table:iscasStats}.
+
+The ISCAS’89 benchmark is a standard set of circuits that make use of both combinatorial and stateful logic. Each circuit in the benchmark contains a number of inputs and outputs, logic gates, and D-Flip Flops. We study three separate circuits from this benchmark: s5378, s9234, and s38584.1. The characteristics of each can be found in Table~\ref{table:iscasStats}.
 
 \begin{table}[h]
 \centering
-\begin{tabular}{@{}llll@{}}
+\begin{tabular}{@{}lrrr@{}}
 \toprule
 Circuit  & Flip Flops & Inverters & Gates \\ \midrule
 s5374    & 179        & 1775      & 1004  \\
@@ -188,13 +185,14 @@ s38584.1 & 1426       & 7805      & 11448 \\ \bottomrule
 \end{table}
 
 \subsection{RAID}
+
 The RAID model is a simulation of a RAID-5 disk array. It models the characteristics of the array during reading and writing, including the calculation of parity information across the array. The model used in this evaluation contained 32 disks, 8 RAID controllers and 96 Input Processes generating disk activity.
 
 \subsection{Results}
 
-The benchmarks were run with the Profile Guided Partitioning algorithm described above, and with a random partitioning algorithm. The simulation times for the benchmarks are shown in table~\ref{table:benchmarks}. The Profile Guided Partitiong algorithm outperforms naive partitioning by a factor of \(1.74\times\) to \(6.04\times\), depending on the simulation model and number of nodes.
+The benchmarks were run with the Profile Guided Partitioning algorithm described above, and with a random partitioning algorithm. The simulation times for the benchmarks are shown in Table~\ref{table:benchmarks}. The Profile Guided Partitioning algorithm outperforms naive partitioning by a factor of \(1.74\times\) to \(6.04\times\), depending on the simulation model and number of nodes.
 
-\begin{table}[h]
+\begin{table}[t]
 \centering
 \begin{tabular}{@{}lllll@{}}
 \toprule
@@ -216,33 +214,31 @@ RAID              & 2            & 103.79 & 20.41          & \(5.09\times\)    \
 \label{table:benchmarks}
 \end{table}
 
-%%% Should I include partitioning pictures for all of the models? There's already a lot of figures.
-
-Although significant speedup is observed in all models, the amount and scaling varies. The speedup for the RAID model remains roughly constant as the number of nodes increases. This model has a regular sructure, which would allow the partitioning algorithm to work effectively over the range of partitions. It is likely that this model is compute bound at any number of nodes when partitioned correctly.
+Although significant speedup is observed in all models, the amount and scaling varies. The speedup for the RAID model remains roughly constant as the number of nodes increases. This model has a regular structure, which would allow the partitioning algorithm to work effectively over the range of partitions. It is likely that this model is compute bound at any number of nodes when partitioned correctly.
 
 The various circuits of the ISCAS'89 benchmark each exhibit different speedup scaling behaviors. The speedup obtained with Profile Guided Partitioning for s5378 circuit decreases slightly for the s5378 circuit as the number of nodes increases. The speedup decreases sharply with the number of nodes for the s9234 circuit, and increases with the number of nodes for the s38584.1 circuit.
 
- As can be seen in figure \ref{fig:iscas4part}, the bulk of the messages sent during the simulation are contained in a subset of the objects. For small numbers of partitions, it is possible to select partitions in such a way that all of the high traffic objects are contained in the same partition. As the number of partitions increases, it becomes necessary to split these high traffic objects across partitions, which may explain the narrowing performance gap between Random Partitioning and the Random algorithm.
+As can be seen in figure \ref{fig:iscas4part}, the bulk of the messages sent during the simulation are contained in a subset of the objects. For small numbers of partitions, it is possible to select partitions in such a way that all of the high traffic objects are contained in the same partition. As the number of partitions increases, it becomes necessary to split these high traffic objects across partitions, which may explain the narrowing performance gap between Random Partitioning and the Random algorithm.
 
-\begin{figure}[h]
+\begin{figure}
 \centering
 \benchbar{103.79}{46.16}{26.22}{20.41}{9.87}{4.86}
 \caption {Run time of RAID simulation}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}
 \centering
 \benchbar{15.56}{9.12}{6.76}{6.19}{4.24}{3.20}
 \caption {Run time of ISCAS'89 simulation using the s5378 circuit}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}
 \centering
 \benchbar{64.76}{35.39}{23.23}{10.73}{7.23}{13.37}
 \caption {Run time of ISCAS'89 simulation using the s9234 circuit}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}
 \centering
 \benchbar{64.92}{28.05}{13.25}{40.92}{11.76}{3.87}
 \caption {Run time of ISCAS'89 simulation using the s38584.1 circuit}
@@ -250,9 +246,9 @@ The various circuits of the ISCAS'89 benchmark each exhibit different speedup sc
 
 \section{CONCLUSIONS}\label{sec:conclusions}
 
-In this paper, we presented a method of performing partitioning on arbitrary Discrete Event Simulation models. We demonstrated that the event characteristics of a model in a sequential environment are capable of directing a partitioning strategy for that model in a parallel simulation. We found that this algorithm can result in up to a \(6\times\) speedup over naive partitioning. The speedup obtained varies between models, indicating that the model topology can have a significant effect on the performance of partitioning. Future work could attempt to identify model topologies that are most amenable to Profile Guided Partitioning, and perhaps perform graph minimum cuts that take additional behavior other than message quantity into account. 
+In this paper, we presented a method of performing partitioning on arbitrary Discrete Event Simulation models. We demonstrated that the event characteristics of a model in a sequential environment are capable of directing a partitioning strategy for that model in a parallel simulation. We found that this algorithm can result in up to a \(6\times\) speedup over naive partitioning. The speedup obtained varies between models, indicating that the model topology can have a significant effect on the performance of partitioning. Future work could attempt to identify model topologies that are most amenable to Profile Guided Partitioning, and perhaps perform graph minimum cuts that take additional behavior other than message quantity into account.
 
-\section*{ACKNOWLEGEMENTS}
+\section*{ACKNOWLEDGMENTS}
 
 Support for this work was provided in part by the National Science Foundation
 under grant CNS--0915337.
@@ -264,7 +260,7 @@ under grant CNS--0915337.
 
 \noindent \textbf{AJ Alt} is a graduate student in the Department of Electrical Engineering and Computing Systems at the University of Cincinnati. His email address is \email{altaj@mail.uc.edu}.\\
 
-\noindent \textbf{PHILIP A. WILSEY} is a professor in the Department of Electrical Engineering and Computing Systems at the University of Cincinnati. His is an experimentalist working in parallel and distributed systems, embedded system, and point-of-care medical devices. He is currently studying the challenges of parallelism in multi-core and many-core platforms and is studying the optimization of Beowulf clusters composed of multi-/many-core processors to support efficient parallel execution of fine grained applications. His email address is \email{wilseypa@gmail.com} and his web pages are \url{http://secs.ceas.uc.edu/~paw} and \url{http://github.com/wilseypa}.
+\noindent \textbf{PHILIP A.\ WILSEY} is a professor in the Department of Electrical Engineering and Computing Systems at the University of Cincinnati. His is an experimentalist working in parallel and distributed systems, embedded system, and point-of-care medical devices. He is currently studying the challenges of parallelism in multi-core and many-core platforms and is studying the optimization of Beowulf clusters composed of multi-/many-core processors to support efficient parallel execution of fine grained applications. His email address is \email{wilseypa@gmail.com} and his web pages are \url{http://secs.ceas.uc.edu/~paw} and \url{http://github.com/wilseypa}.
 
 \end{document}
 
