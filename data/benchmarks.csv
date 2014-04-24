@@ -388,3 +388,43 @@ ISCAS89: s38584,8,ProfileGuided,3.873,15801,/usr/local/mpich2/bin/mpiexec.hydra 
 ISCAS89: s38584,8,ProfileGuided,3.87348,2133,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 8 ./iscasSim --simulate iscas/benchfiles/s38584.1.bench -u 300000 -c benchparallel.json
 ISCAS89: s38584,8,ProfileGuided,3.87393,21561,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 8 ./iscasSim --simulate iscas/benchfiles/s38584.1.bench -u 300000 -c benchparallel.json
 ISCAS89: s38584,8,ProfileGuided,3.87404,9145,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 8 ./iscasSim --simulate iscas/benchfiles/s38584.1.bench -u 300000 -c benchparallel.json
+ISCAS89: s38584,1,RoundRobin,165.576,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s38584.1.bench -u 300000 -c benchparallel.json
+ISCAS89: s38584,1,RoundRobin,165.348,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s38584.1.bench -u 300000 -c benchparallel.json
+ISCAS89: s38584,1,RoundRobin,167.502,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s38584.1.bench -u 300000 -c benchparallel.json
+ISCAS89: s38584,1,RoundRobin,164.18,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s38584.1.bench -u 300000 -c benchparallel.json
+ISCAS89: s38584,1,RoundRobin,164.332,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s38584.1.bench -u 300000 -c benchparallel.json
+ISCAS89: s38584,1,ProfileGuided,168.253,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s38584.1.bench -u 300000 -c benchparallel.json
+ISCAS89: s38584,1,ProfileGuided,162.983,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s38584.1.bench -u 300000 -c benchparallel.json
+ISCAS89: s38584,1,ProfileGuided,164.968,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s38584.1.bench -u 300000 -c benchparallel.json
+ISCAS89: s38584,1,ProfileGuided,163.635,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s38584.1.bench -u 300000 -c benchparallel.json
+ISCAS89: s38584,1,ProfileGuided,164.481,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s38584.1.bench -u 300000 -c benchparallel.json
+ISCAS89: s9234,1,RoundRobin,37.1459,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s9234.bench -u 3000000 -c benchparallel.json
+ISCAS89: s9234,1,RoundRobin,37.3857,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s9234.bench -u 3000000 -c benchparallel.json
+ISCAS89: s9234,1,RoundRobin,37.1817,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s9234.bench -u 3000000 -c benchparallel.json
+ISCAS89: s9234,1,RoundRobin,36.8048,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s9234.bench -u 3000000 -c benchparallel.json
+ISCAS89: s9234,1,RoundRobin,37.2002,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s9234.bench -u 3000000 -c benchparallel.json
+ISCAS89: s9234,1,ProfileGuided,37.1618,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s9234.bench -u 3000000 -c benchparallel.json
+ISCAS89: s9234,1,ProfileGuided,36.8727,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s9234.bench -u 3000000 -c benchparallel.json
+ISCAS89: s9234,1,ProfileGuided,38.6778,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s9234.bench -u 3000000 -c benchparallel.json
+ISCAS89: s9234,1,ProfileGuided,37.4405,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s9234.bench -u 3000000 -c benchparallel.json
+ISCAS89: s9234,1,ProfileGuided,37.0996,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s9234.bench -u 3000000 -c benchparallel.json
+RAID,1,RoundRobin,50.8684,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./raidSim --simulate raid/LargeRaid -u 150000 -c benchparallel.json
+RAID,1,RoundRobin,50.652,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./raidSim --simulate raid/LargeRaid -u 150000 -c benchparallel.json
+RAID,1,RoundRobin,52.2172,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./raidSim --simulate raid/LargeRaid -u 150000 -c benchparallel.json
+RAID,1,RoundRobin,50.6178,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./raidSim --simulate raid/LargeRaid -u 150000 -c benchparallel.json
+RAID,1,RoundRobin,53.2787,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./raidSim --simulate raid/LargeRaid -u 150000 -c benchparallel.json
+RAID,1,ProfileGuided,50.6251,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./raidSim --simulate raid/LargeRaid -u 150000 -c benchparallel.json
+RAID,1,ProfileGuided,50.3471,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./raidSim --simulate raid/LargeRaid -u 150000 -c benchparallel.json
+RAID,1,ProfileGuided,50.7601,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./raidSim --simulate raid/LargeRaid -u 150000 -c benchparallel.json
+RAID,1,ProfileGuided,51.1054,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./raidSim --simulate raid/LargeRaid -u 150000 -c benchparallel.json
+RAID,1,ProfileGuided,51.069,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./raidSim --simulate raid/LargeRaid -u 150000 -c benchparallel.json
+ISCAS89: s5378,1,RoundRobin,20.3242,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s5378.bench -u 1000000 -c benchparallel.json
+ISCAS89: s5378,1,RoundRobin,20.2672,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s5378.bench -u 1000000 -c benchparallel.json
+ISCAS89: s5378,1,RoundRobin,20.5199,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s5378.bench -u 1000000 -c benchparallel.json
+ISCAS89: s5378,1,RoundRobin,20.9781,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s5378.bench -u 1000000 -c benchparallel.json
+ISCAS89: s5378,1,RoundRobin,20.3971,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s5378.bench -u 1000000 -c benchparallel.json
+ISCAS89: s5378,1,ProfileGuided,20.5161,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s5378.bench -u 1000000 -c benchparallel.json
+ISCAS89: s5378,1,ProfileGuided,20.2767,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s5378.bench -u 1000000 -c benchparallel.json
+ISCAS89: s5378,1,ProfileGuided,20.3624,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s5378.bench -u 1000000 -c benchparallel.json
+ISCAS89: s5378,1,ProfileGuided,20.3012,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s5378.bench -u 1000000 -c benchparallel.json
+ISCAS89: s5378,1,ProfileGuided,20.7329,0,/usr/local/mpich2/bin/mpiexec.hydra -f hosts -n 1 ./iscasSim --simulate iscas/benchfiles/s5378.bench -u 1000000 -c benchparallel.json
