@@ -85,7 +85,7 @@
     in partial fulfillment of the\\
     requirements for the degree of\\[0.20in]
     {\bf MASTER OF SCIENCE}\\[0.20in]
-    in the School of Electric and Computing Systems\\
+    in the School of Electrical and Computing Systems\\
     of the College of Engineering and Applied Sciences\\[0.20in]
     May 23, 2014\\[0.20in]
     by\\[0.20in]
@@ -122,7 +122,7 @@ Discrete-event driven simulation (DES) is a widely used mechanism to facilitate 
 
 Mapping DES onto Beowulf clusters is made difficult due to the fine-grained computation required for processing an event and the frequencies with which new events are created and processed by the PDES engine. For most DES models, the processing requirements for a single event are low, and so the simulation run time can be dominated by message passing costs. In a sequential DES, communicating event information between objects requires, at most, a memory copy. In PDES, sending an event may require that event data be serialized into a network message, communicated, and deserialized at the receiving node. For certain simulation models (\emph{workloads}), this means that much of the simulation time is spent sending network messages. This is especially true when the simulation model is distributed across the parallel compute nodes without regard to the number of messages that will have to be exchanged by the concurrent objects of the parallel simulation. Ultimately the number of exchanged messages will be heavily dependent on each particular simulation model and thus, some form of model specific analysis activity must be performed to determine a suitable partitioning for the simulation model across the parallel compute hardware.
 
-This thesis presents a method of reducing simulation network traffic in PDES simulations while balancing processor load by using profile data to implement a model specific partitioning and assignment capability. The profile based approach uses a small sequential simulator that pre-simulates the model to capture information on how frequently objects within the simulation model exchange event information. This event ``profile data'' is then used to establish a set of partitions that attempt to minimize the amount of event information that will have to be exchanged between objects of different partitions. The identified partitions are then used by the parallel simulation kernel to assign partitions (and the simulation objects therein) to the compute nodes of the parallel Cluster. The effectiveness of this method is demonstrated by implementing profile guided partitioning in the \textsc{warped} PDES kernel. A number of real world models are used to evaluate the effectiveness of the approach against the naive partitioning algorithm currently used by the \textsc{warped} kernel. These studies show that a significant speedups can be achieved when the studied profile based partitioning method is applied to these models.
+This thesis presents a method of reducing simulation network traffic in PDES simulations while balancing processor load by using profile data to implement a model specific partitioning and assignment capability. The profile based approach uses a data collected from a short sequential simulation run that captures information on how frequently objects within the simulation model exchange event information. This event profile data is then used to establish a set of partitions that attempt to minimize the amount of event information that will have to be exchanged between objects of different partitions. The identified partitions are then used by the parallel simulation kernel to assign partitions (and the simulation objects therein) to the compute nodes of the parallel cluster. The effectiveness of this method is demonstrated by implementing profile guided partitioning in the \textsc{warped} PDES kernel. A number of real world models are used to evaluate the effectiveness of the approach against the naive partitioning algorithm currently used by the \textsc{warped} kernel. These studies show that a significant speedups can be achieved when the studied profile based partitioning method is applied to these models.
 
 \section{Principle Hypothesis}
 
@@ -130,7 +130,7 @@ The principle hypothesis of this thesis is that \emph{the overhead of sending ev
 
 \section{Thesis Overview}
 
-The remainder of this thesis is organized as follows:
+The remainder of this thesis is organized as follows.
 
 Chapter \ref{background} gives an explanation of Discrete Event Simulations and the Time Warp protocol for Parallel Discrete Event Simulations. It introduces the concepts of partitioning and load balancing in the context of Parallel Discrete Event Simulations, and gives an overview of the \textsc{warped} Simulation Kernel used in this thesis.
 
@@ -187,12 +187,12 @@ Since only cross-partition events can trigger rollbacks, and are slow even if no
     \addplot[domain=1:32, gray, fill=gray] {1 - 1/x} \closedcycle;
 \end{axis}
 \end{tikzpicture}
-\caption {Predicted Fraction Of Events Crossing Partitions For Random Partitioning}
+\caption {Predicted Fraction of Events Crossing Partitions for Random Partitioning}
 \end{figure}
 
 \section{The \textsc{warped} PDES Simulator}
 
-The work for this thesis was built on an existing PDES simulator, the \textsc{warped} simulation kernel. \textsc{warped} was developed at the University of Cincinnati and is a C++ implementation of a Time Warp synchronized PDES kernel \cite{king-11}. \textsc{warped} is designed in an object oriented fashion, and uses inheritance for modularity. It is built around the concept of ``managers'' that control various components of the simulation.
+The work for this thesis was built on an existing PDES simulator, the \textsc{warped} simulation kernel. \textsc{warped} was developed at the University of Cincinnati and is a C++ implementation of a Time Warp synchronized PDES kernel \cite{king-11}. \textsc{warped} is designed in an object oriented fashion, and uses inheritance for modularity. It is built around the concept of managers that control various components of the simulation.
 
 The core of the library are the \texttt{SimulationManager} classes, which are analogues to an LP. They own other simulation components and coordinate their functionality. \textsc{warped} can be configured at runtime to select from various subclasses of the \texttt{SimulationManager}, including the \texttt{SequentialSimulationManager}, which, as the name suggests, will run the simulation sequentially on a single process. Another option is the \texttt{TimeWarpSimulationManager}, which is used to run the Time Warp synchronized, distributed simulation.
 
@@ -208,12 +208,12 @@ Li and Tropper attempted to improve on the traditional approach to partitioning 
 
 Guo and Hu created an algorithm to partition a simulation model of a wildfire using profiling data \cite{guo-11}. They collected data from a low resolution simulation which they used to partition a more fine grained simulation. They found that their profile guided algorithm could achieve speedups of up to \(1.5\times\) over traditional uniform spatial partitioning. Unfortunately, this algorithm is applicable only to a single, application specific, simulation model.
 
-Bahulkar \emph{et al.} created a synthetic simulation model in order to explore the effect of dynamic partitioning on various model topologies. They compared the effectiveness of several different partitioning schemes, including a static algorithm that partitions based on a weight assigned to objects, and a dynamic algorithm that takes message activity for objects into account. They found that in a high latency environment such as a Beowulf cluster, dynamic partitioning can perform up to \(4\times\) better than static partitioning.
+Bahulkar \emph{et al.} created a synthetic simulation model in order to explore the effect of dynamic partitioning on various model topologies. They compared the effectiveness of several different partitioning schemes, including a static algorithm that partitions based on a weight assigned to objects, and a dynamic algorithm that takes message activity for objects into account. They found that in a high latency environment such as a Beowulf cluster, dynamic partitioning can perform up to \(4\times\) better than static partitioning for their synthetic model.
 
 
 \chapter{Overview of the Approach}\label{overview}
 
-This chapter will provide an overview of the approach taken to implement Profile Guided Partitioning in the \textsc{warped} Simulator. The first section describes the approach taken to profile simulation models and how the collected statistics are represented. The second section introduces the algorithms used to perform partitioning.
+This chapter provides an overview of the approach taken to implement Profile Guided Partitioning in the \textsc{warped} Simulator. The first section describes the approach taken to profile simulation models and how the collected statistics are represented. The second section introduces the algorithms used to perform partitioning.
 
 \section{Profiling Discrete Event Models}
 
@@ -243,7 +243,7 @@ The library chosen to perform this partitioning is METIS, which is capable of pe
 
 Of the various partitioning algorithms supported by METIS, its multilevel k-way partitioning algorithm was chosen due the high quality partitions produced. This algorithm works by \emph{coarsening} the graph by collapsing vertices and edges together to successively reduce its size. Once the size of the graph has been reduced to a small enough size, the small graph is partitioned and then uncoarsened into a partition of the original graph \cite{karypis-98}.
 
-Multilevel k-way partitioning can achieve very good results. Figure~\ref{fig:s5378_4rr} shows the model from Figure~\ref{fig:s9234} partitioned into four partitions using a random algorithm that distributes the objects evenly between partitions in a round-robin manner, without regard to any graph edges. This random algorithm results in a graph in which \(75.83\%\) of edges weights cross between partitions. In contrast, Figure~\ref{fig:s5378_4part} shows the same graph partitioned into four partitions using the multilevel k-way algorithm described above. In this case, only \(1.38\%\) of edge weights cross between partitions. Graphs of all models studied in this thesis can be found in Appendix~\ref{appendixA}.
+Multilevel k-way partitioning can achieve very good results. Figure~\ref{fig:s5378_4rr} shows the model from Figure~\ref{fig:s9234} partitioned into four partitions using a random algorithm that distributes the objects evenly between partitions in a round-robin manner, without regard to any graph edges. In this figure, each grey block represents one partition. The random algorithm results in a graph in which \(75.83\%\) of edges weights cross between partitions. In contrast, Figure~\ref{fig:s5378_4part} shows the same graph partitioned into four partitions using the multilevel k-way algorithm described above. In this case, only \(1.38\%\) of edge weights cross between partitions. Graphs of all models studied in this thesis can be found in Appendix~\ref{appendixA}.
 
 \begin{figure}[ht]\label{fig:s5378_4rr}
 \centering
@@ -265,7 +265,7 @@ This chapter describes the details of the implementation of Profile Guided Parti
 
 To use the Profile Guided Partitioning functionality in \textsc{warped}, a two-step process was chosen. First, profile data is collected during a sequential simulation run and stored in an intermediate file on disk. This statistics file is then read by \textsc{warped} when run in a parallel configuration in order to perform partitioning. It would be possible to perform profiling automatically in one step, which would save a small amount of user intervention, but there are a number of drawback to automatic partitioning that led to the choice of the current procedure.
 
-Firstly, profiling takes time. By saving the results to disk a user is able to perform profiling once, then use the collected data for multiple runs. Because the profiling data is independent of the platform used, including the number of simulation nodes, a benchmarking run consisting of multiple system configurations only needs to perform profiling once
+Firstly, profiling takes time. By saving the results to disk a user is able to perform profiling once, then use the collected data for multiple runs. Because the profiling data is independent of the platform used, including the number of simulation nodes, a benchmarking run consisting of multiple system configurations only needs to perform profiling once.
 
 Of course, it would be possible to cache the profiling results between simulation runs, even if the profiling was performed automatically. However, the one-step process still has a larger drawback. Some simulation models have a natural termination condition. For example, a VLSI circuit model might read in a fixed-length input vector and terminate once all inputs have propagated through the circuit. Not all models terminate naturally, however. A model of a disease epidemic spreading through a geographic area may not have a natural termination condition. Instead, this model would run until a given GVT value was reached. Even if a model does have a natural termination condition, it may be a very long running simulation. In this case, it is desirable to terminate at a given GVT to save time. Either way, an automated one-step profiling procedure would not be able to automatically determine the termination settings. Because of this, the two-step process in advantageous.
 
@@ -346,7 +346,7 @@ The differences in scaling of speedup factors across the different models are si
 
 The speedup gained by using Profile Guided Partitioning on the RAID model is fairly independent of the number of nodes used, remaining around \(5\times\) for all tested number of nodes. This is logical based on the structure of the RAID model. Each RAID controller is connected to a number of disks and processes that communicate with each other. However, each controller and its associated disks and processes form a cluster of objects which does not communicate with other clusters. Because of this regular, disjoint structure, it is possible to partition the simulation such that no events cross partition boundaries.
 
-The various ISCAS circuits present more complicated graphs, and show a variety of speedup scaling behaviors. Due to the fact that the ISCAS model is based on real-world circuits, the graphs are much less regular than the RAID benchmark. Table~\ref{tab:eventCrossings} shows the percentage of events crossing partition boundaries for the various models. With Profile Guided Partitioning, the number of events crossing partitions increases by a small, consistent amount as the number of partitions increases. The scaling of performance, however seem uncorrelated to the scaling of the fraction of events crossing partitions.
+The various ISCAS circuits present more complicated graphs, and show a variety of speedup scaling behaviors. Due to the fact that the ISCAS model is based on real-world circuits, the graphs are much less regular than the RAID benchmark. Table~\ref{tab:eventCrossings} shows the percentage of events crossing partition boundaries for the various models. With Profile Guided Partitioning, the number of events crossing partitions increases by a small, consistent amount as the number of partitions increases. The scaling of performance, however, seems uncorrelated to the scaling of the fraction of events crossing partitions.
 
 \begin{table}\label{tab:eventCrossings}
 \centering
